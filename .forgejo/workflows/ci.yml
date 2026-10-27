@@ -1,0 +1,26 @@
+# Runs the docreview checks. The runner image (node:lts) has no Go, so setup-go
+# installs the version from docreview/go.mod; actions resolve against data.forgejo.org.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docreview:
+    name: docreview tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docreview
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: docreview/go.mod
+          cache: false
+
+      - run: go vet ./...
+      - run: go test -race ./...
