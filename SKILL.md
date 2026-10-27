@@ -1,9 +1,9 @@
 ---
 name: po
-description: Product-owner bookkeeping for a repo's docs — epics and stories in docs/epics.md (milestones, story IDs like E1S8, acceptance criteria, the Status column), open decisions in docs/decisions-open.md (D-numbers, the open → answered — in progress → recorded flow), ADRs in docs/adr/, and the docreview viewer that renders docs/ as HTML. Use when adding, splitting, moving or closing a story or epic, updating a story's Status after a code change, raising, answering or recording a decision, writing an ADR, checking a docs-only change, or when the user asks to view or review the docs in a browser.
+description: Product-owner bookkeeping for a repo's docs — epics and stories in docs/epics.md (milestones, story IDs like E1S8, acceptance criteria, the Status column), open decisions in docs/decisions-open.md (D-numbers, the open → answered — in progress → recorded flow), ADRs in docs/adr/, the design tenets in docs/tenets.md (T-numbers), the architecture overview in docs/architecture.md, and the docreview viewer that renders docs/ as HTML. Use when adding, splitting, moving or closing a story or epic, updating a story's Status after a code change, raising, answering or recording a decision, writing an ADR, adding or changing a tenet or the architecture, reviewing a change against the tenets, checking a docs-only change, or when the user asks to view or review the docs in a browser.
 ---
 
-# PO: epics, stories, decisions, docreview
+# PO: epics, stories, decisions, tenets, architecture, docreview
 
 A repo that uses this skill keeps its plan in `docs/`:
 
@@ -12,6 +12,8 @@ A repo that uses this skill keeps its plan in `docs/`:
 | `docs/epics.md` | milestones → epics → stories, each with a `Status` | [references/epics.md](references/epics.md) |
 | `docs/decisions-open.md` | decisions still open or answered but not yet recorded | [references/decisions.md](references/decisions.md) |
 | `docs/adr/NNNN-<slug>.md` | recorded decisions | [references/decisions.md](references/decisions.md#adrs) |
+| `docs/tenets.md` | numbered design principles (`T<n>`) that override convenience | [references/tenets-architecture.md](references/tenets-architecture.md) |
+| `docs/architecture.md` | how the system is built today, with links to its ADRs | [references/tenets-architecture.md](references/tenets-architecture.md#docsarchitecturemd) |
 
 Missing files: start from [templates/](templates/). Read the reference for a file before you change it.
 
@@ -43,6 +45,19 @@ Missing files: start from [templates/](templates/). Read the reference for a fil
 8. **One PR per change.** Every change goes through its own pull request from a feature branch.
    Never commit to, merge into or push `main` (the default branch) without the user's explicit ask
    for that change; a passing QA or docs-only check is not that ask.
+
+## Tenets and architecture
+
+- **Before implementing a story,** read the story, then `docs/tenets.md` and `docs/architecture.md`.
+- **A change that seems to contradict a tenet: stop and ask.** Do not work around it. Either the
+  change is reshaped, or the user changes the tenet (record the question in
+  `docs/decisions-open.md` meanwhile).
+- **Review against the tenets** after each code change: for every tenet the change touches, check
+  that it holds; report only real violations with tenet, `file:line`, what breaks and the smallest fix.
+- **Keep `architecture.md` current** in the same change that alters what it describes (planes,
+  transport, storage, config, secrets, CI checks). It summarises and links; the reasoning lives in ADRs.
+- **Cite, do not repeat:** stories, ADRs and agent instructions refer to `T<n>` instead of restating
+  the principle.
 
 ## Checking a docs-only change
 

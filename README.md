@@ -2,7 +2,8 @@
 
 An [Agent Skill](https://agentskills.io) for product-owner bookkeeping in a repo's `docs/`:
 epics and stories with a `Status` column (`docs/epics.md`), open decisions
-(`docs/decisions-open.md`), ADRs (`docs/adr/`), and **docreview**, a local viewer that renders the
+(`docs/decisions-open.md`), ADRs (`docs/adr/`), tenets (`docs/tenets.md`), the architecture
+overview (`docs/architecture.md`), and **docreview**, a local viewer that renders the
 docs as HTML. Works with Claude Code and pi; the skill itself is [`SKILL.md`](SKILL.md).
 
 ## Install
@@ -28,7 +29,7 @@ Then add [`templates/AGENTS-snippet.md`](templates/AGENTS-snippet.md) to the rep
 | Path | What |
 |---|---|
 | [`SKILL.md`](SKILL.md) | rules and workflow the agent follows |
-| [`references/`](references/) | formats of `epics.md`, `decisions-open.md` and ADRs |
+| [`references/`](references/) | formats of `epics.md`, `decisions-open.md`, ADRs, `tenets.md` and `architecture.md` |
 | [`templates/`](templates/) | starting files for a new repo |
 | [`docreview/`](docreview/) | the doc viewer (Go); `cd docreview && go run . --repo <repo>` |
 
