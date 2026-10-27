@@ -229,12 +229,29 @@ func (s Server) serve(w http.ResponseWriter, r *http.Request) {
 		var buf bytes.Buffer
 		tree := mdParser.Parse(src)
 		rewriteLinks(tree, src, cur.Key, v.CurSig, p, docs, s.sigDoc, s.sigDir)
-		if slices.Contains(docs, epicsDoc) {
-			if epics, err := cur.Read(s.Repo, epicsDoc); err != nil {
-				slog.Warn("story links skipped: epics.md unreadable", "source", cur.Key, "error", err)
-			} else {
-				linkStories(tree, src, storyIDs(epics), storyBase(cur.Key, v.CurSig, p, s.sigDoc), p == epicsDoc)
+		ids := map[string]string{} // story ID → the doc that defines it; the first definition wins
+		for _, d := range docs {
+			if !storyDoc(d) {
+				continue
 			}
+			b, err := cur.Read(s.Repo, d)
+			if err != nil {
+				slog.Warn("story links skipped: story doc unreadable", "source", cur.Key, "doc", d, "error", err)
+				continue
+			}
+			for _, id := range storyIDs(b) {
+				if _, dup := ids[id]; !dup {
+					ids[id] = d
+				}
+			}
+		}
+		if len(ids) > 0 {
+			linkStories(tree, src, ids, p, func(d string) string {
+				if d == p {
+					return ""
+				}
+				return docURL(cur.Key, v.CurSig, d, s.sigDoc)
+			})
 		}
 		if err := mdRenderer.Render(&buf, src, tree); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -1,5 +1,7 @@
 # docs/epics.md
 
+One file, or an index plus one file per epic when it grows too long ([One file per epic](#one-file-per-epic)).
+
 ## Layout
 
 ```markdown
@@ -30,8 +32,34 @@
 - The first cell of a story row starts with the bold ID, `**E1S1**`, followed by the title.
   docreview finds stories by exactly this pattern (`| **E1S1**`) to give each row an anchor
   (`#e1s1`) and link IDs elsewhere to it.
+- Story IDs are `E<epic>S<n>` (`E1S1`) or, in a repo that already writes them so, `E<epic>-S<n>`
+  (`E1-S1`). Use one form per repo; docreview and the docs-only check accept both.
 - An assumption a story or milestone rests on is a blockquote (`> Assumption: …`) **and** a row in
   `docs/decisions-open.md`.
+
+## One file per epic
+
+When `epics.md` gets too long to read or review, split it:
+
+- `docs/epics.md` keeps the intro, `## Milestones`, `## Cross-cutting`, `## Out of scope` and an
+  epic index: one row per epic with its milestone and a relative link to its file.
+- Each epic gets its own file whose name starts with `epic` (`docs/epics/epic-03-detection.md`,
+  or the repo's existing directory, e.g. `docs/backlog/epic-03-detection-engine.md`). docreview
+  treats every such file as a story doc.
+- In an epic file a story is either a table row as above, or a section whose heading starts with
+  the ID, with its `Status` as the first line:
+
+  ```markdown
+  ## E3-S14 — Accessibility statement
+
+  **Status:** open
+  ```
+
+  docreview anchors the heading (`#e3-s14`) and links the ID elsewhere to it. Long specs
+  (contract, data, acceptance criteria) live in the story's section.
+- The `Status` values below apply to both forms. Each story has its `Status` in exactly one
+  place; a repo that also lists statuses elsewhere (a summary table in `AGENTS.md`) names which
+  one is authoritative and checks they agree.
 
 ## Acceptance
 

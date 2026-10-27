@@ -78,6 +78,47 @@ func TestNoEpicsNoLinks(t *testing.T) {
 	}
 }
 
+// Backlog files define dashed IDs by heading; links go to the defining doc, the heading gets the anchor.
+func TestDashedStoryHeadings(t *testing.T) {
+	repo, _ := fixture(t)
+	write(t, repo, "docs/backlog/epic-03-detection.md", "# Epic 3\n\n## E3-S13 — Imprint\n\nSee E3-S14.\n\n## E3-S14 — Statement\n\n`E3-S13` and E3-S9.\n")
+	write(t, repo, "docs/backlog/notes.md", "## E3-S15 — not a story doc\n")
+	write(t, repo, "docs/d.md", "| D1 | blocks E3-S14 |\n|---|---|\n\nE3-S13, E3S13, E3-S15 and XE3-S14.\n")
+	run(t, repo, "add", ".")
+	run(t, repo, "commit", "-m", "backlog")
+	srv := srvFor(repo)
+
+	_, body := get(t, repo, "/?s=b:main&p=docs/d.md")
+	link := regexp.MustCompile(`<a href="(/\?[^"]*)#(e3-s\d+)">(E3-S\d+)</a>`)
+	ms := link.FindAllStringSubmatch(body, -1)
+	if len(ms) != 2 { // the cell's E3-S14 and the plain E3-S13
+		t.Fatalf("want 2 story links, got %d in %s", len(ms), body)
+	}
+	for _, m := range ms {
+		u, _ := url.Parse(html.UnescapeString(m[1]))
+		if u.Query().Get("p") != "docs/backlog/epic-03-detection.md" || u.Query().Get("ps") != srv.sigDoc("docs/backlog/epic-03-detection.md") {
+			t.Errorf("bad link %s", m[1])
+		}
+		code, page := get(t, repo, u.String())
+		if code != 200 || !strings.Contains(page, `<h2 id="`+m[2]+`">`) {
+			t.Errorf("link %s: %d, heading anchor missing", u.String(), code)
+		}
+	}
+	if strings.Contains(body, ">E3S13</a>") || strings.Contains(body, ">E3-S15</a>") || strings.Contains(body, ">XE3-S14</a>") {
+		t.Error("linked an ID no story doc defines")
+	}
+
+	_, body = get(t, repo, "/?s=b:main&p=docs/backlog/epic-03-detection.md")
+	for _, want := range []string{`<h2 id="e3-s13">`, `<h2 id="e3-s14">`, `<a href="#e3-s14">E3-S14</a>`, "<code>E3-S13</code>"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("epic file: missing %s in %s", want, body)
+		}
+	}
+	if strings.Contains(body, `>E3-S9</a>`) || strings.Contains(body, `href="#e3-s13">E3-S13</a> — Imprint`) {
+		t.Error("linked an undefined ID or a defining heading")
+	}
+}
+
 func TestUnreadableEpicsWarnsAndRenders(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root ignores permissions")
@@ -93,7 +134,7 @@ func TestUnreadableEpicsWarnsAndRenders(t *testing.T) {
 	defer slog.SetDefault(old)
 	slog.SetDefault(slog.New(slog.NewTextHandler(&b, nil)))
 	code, body := get(t, repo, "/?s=w:"+wt+"&p=docs/s.md")
-	if code != 200 || strings.Contains(body, ">E1S1</a>") || !strings.Contains(b.String(), "epics.md unreadable") {
+	if code != 200 || strings.Contains(body, ">E1S1</a>") || !strings.Contains(b.String(), "story doc unreadable") || !strings.Contains(b.String(), "doc=docs/epics.md") {
 		t.Errorf("code %d, log %q", code, b.String())
 	}
 }
