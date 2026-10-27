@@ -6,7 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/v2/ast"
+	"github.com/yuin/goldmark/v2/text"
 )
 
 // dirEntries lists the immediate subdirectories and docs of dir (a slash path, "." for the root), both sorted.
@@ -36,13 +37,13 @@ func dirEntries(docs []string, dir string) (subdirs, files []string) {
 
 // rewriteLinks points relative links that resolve to another doc, or a directory holding docs, of the same source
 // back at the viewer. Everything else (fragments, absolute URLs, non-docs, paths leaving the repo) is left alone.
-func rewriteLinks(root ast.Node, srcKey, srcSig, doc string, docs []string, docSig, dirSig func(string) string) {
+func rewriteLinks(root ast.Node, src []byte, srcKey, srcSig, doc string, docs []string, docSig, dirSig func(string) string) {
 	_ = ast.Walk(root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		l, ok := n.(*ast.Link)
 		if !ok || !entering {
 			return ast.WalkContinue, nil
 		}
-		u, err := url.Parse(string(l.Destination))
+		u, err := url.Parse(l.Destination.Value(src))
 		if err != nil || u.Scheme != "" || u.Host != "" || u.Path == "" || strings.HasPrefix(u.Path, "/") {
 			return ast.WalkContinue, nil
 		}
@@ -61,7 +62,7 @@ func rewriteLinks(root ast.Node, srcKey, srcSig, doc string, docs []string, docS
 		if u.Fragment != "" {
 			dest += "#" + url.PathEscape(u.Fragment)
 		}
-		l.Destination = []byte(dest)
+		l.Destination = text.NewSingleLineValueFromString(dest, text.IdentityDecoder)
 		return ast.WalkContinue, nil
 	})
 }

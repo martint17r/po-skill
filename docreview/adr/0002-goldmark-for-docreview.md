@@ -13,7 +13,7 @@ standard library has no Markdown renderer.
 
 ## Decision
 
-Use `github.com/yuin/goldmark` with its GFM extension, raw HTML off. It lives only
+Use `github.com/yuin/goldmark/v2` (v1 until 2026-10-27) with its GFM parser and HTML renderer extensions, raw HTML off. It lives only
 in the separate `docreview` module, so the service module does not depend on it.
 
 ## Consequences

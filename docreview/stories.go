@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/yuin/goldmark/ast"
-	extast "github.com/yuin/goldmark/extension/ast"
-	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/v2/ast"
+	extast "github.com/yuin/goldmark/v2/extension/ast"
+	"github.com/yuin/goldmark/v2/text"
 )
 
 const epicsDoc = "docs/epics.md"
@@ -47,10 +47,10 @@ func linkStories(root ast.Node, src []byte, ids map[string]bool, base string, on
 		case *ast.CodeSpan, *ast.Link, *ast.AutoLink:
 			return ast.WalkSkipChildren, nil
 		case *extast.TableCell:
-			if s, ok := n.FirstChild().(*ast.Emphasis); ok && onEpics && s.Level == 2 {
+			if s, ok := n.FirstChild().(*ast.Strong); ok && onEpics {
 				if t, ok := s.FirstChild().(*ast.Text); ok && s.ChildCount() == 1 {
-					if id := string(t.Segment.Value(src)); ids[id] {
-						n.SetAttributeString("id", []byte(strings.ToLower(id)))
+					if id := t.Value.Value(src); ids[id] {
+						n.SetAttribute("id", text.NewMultiLineValueFromString(strings.ToLower(id), text.IdentityDecoder))
 						return ast.WalkSkipChildren, nil
 					}
 				}
@@ -60,24 +60,33 @@ func linkStories(root ast.Node, src []byte, ids map[string]bool, base string, on
 		}
 		return ast.WalkContinue, nil
 	})
+	// Pieces of a split Text keep CommonMark decoding; the parser's GFM decoder is a stateless text.NewDecoder().
+	dec := text.NewDecoder()
+	piece := func(start, stop int) *ast.Text {
+		return ast.NewText(text.NewSingleLineValueFromIndex(text.NewIndex(start, stop), dec))
+	}
 	for _, t := range texts {
-		seg := t.Segment
-		val := seg.Value(src)
-		pos := seg.Start
+		if t.Value.IsOwned() { // not backed by source positions, so nothing to split
+			continue
+		}
+		idx := t.Value.Index()
+		val := src[idx.Start:idx.Stop]
+		pos := idx.Start
 		for _, m := range storyRe.FindAllIndex(val, -1) {
 			id := string(val[m[0]:m[1]])
 			if !ids[id] {
 				continue
 			}
-			if m[0]+seg.Start > pos {
-				t.Parent().InsertBefore(t.Parent(), t, ast.NewTextSegment(text.NewSegment(pos, seg.Start+m[0])))
+			if m[0]+idx.Start > pos {
+				t.Parent().InsertBefore(t, piece(pos, idx.Start+m[0]))
 			}
-			l := ast.NewLink()
-			l.Destination = []byte(base + "#" + strings.ToLower(id))
-			l.AppendChild(l, ast.NewTextSegment(text.NewSegment(seg.Start+m[0], seg.Start+m[1])))
-			t.Parent().InsertBefore(t.Parent(), t, l)
-			pos = seg.Start + m[1]
+			l := ast.NewLink(text.NewSingleLineValueFromString(base+"#"+strings.ToLower(id), text.IdentityDecoder))
+			l.AppendChild(piece(idx.Start+m[0], idx.Start+m[1]))
+			t.Parent().InsertBefore(t, l)
+			pos = idx.Start + m[1]
 		}
-		t.Segment = text.NewSegment(pos, seg.Stop)
+		if pos != idx.Start {
+			t.Value = text.NewSingleLineValueFromIndex(text.NewIndex(pos, idx.Stop), dec)
+		}
 	}
 }

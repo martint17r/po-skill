@@ -97,3 +97,15 @@ func TestUnreadableEpicsWarnsAndRenders(t *testing.T) {
 		t.Errorf("code %d, log %q", code, b.String())
 	}
 }
+
+func TestStoryLinksKeepDecoding(t *testing.T) {
+	repo, _ := fixture(t)
+	write(t, repo, "docs/epics.md", epicsFixture)
+	write(t, repo, "docs/s.md", "a &copy; \\* E1S1 \\* &copy; b\n")
+	run(t, repo, "add", ".")
+	run(t, repo, "commit", "-m", "s")
+	_, body := get(t, repo, "/?s=b:main&p=docs/s.md")
+	if !regexp.MustCompile(`a © \* <a href="[^"]*#e1s1">E1S1</a> \* © b`).MatchString(body) {
+		t.Errorf("entities or escapes around a story link not decoded: %s", body)
+	}
+}

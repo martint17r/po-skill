@@ -19,17 +19,18 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/v2/extension"
+	"github.com/yuin/goldmark/v2/parser"
+	mdhtml "github.com/yuin/goldmark/v2/renderer/html"
 )
 
 //go:embed web/*
 var web embed.FS
 
 var (
-	page = template.Must(template.ParseFS(web, "web/page.html"))
-	md   = goldmark.New(goldmark.WithExtensions(extension.GFM)) // raw HTML stays off
+	page       = template.Must(template.ParseFS(web, "web/page.html"))
+	mdParser   = parser.New(parser.WithExtensions(extension.GFMParser))
+	mdRenderer = mdhtml.New(mdhtml.WithExtensions(extension.GFMHTMLRenderer)) // raw HTML stays off
 	// goldmark emits fenced mermaid blocks as <code class="language-mermaid">; mermaid.js wants <pre class="mermaid">.
 	mermaidRe = regexp.MustCompile(`(?s)<pre><code class="language-mermaid">(.*?)</code></pre>`)
 )
@@ -226,8 +227,8 @@ func (s Server) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var buf bytes.Buffer
-		tree := md.Parser().Parse(text.NewReader(src))
-		rewriteLinks(tree, cur.Key, v.CurSig, p, docs, s.sigDoc, s.sigDir)
+		tree := mdParser.Parse(src)
+		rewriteLinks(tree, src, cur.Key, v.CurSig, p, docs, s.sigDoc, s.sigDir)
 		if slices.Contains(docs, epicsDoc) {
 			if epics, err := cur.Read(s.Repo, epicsDoc); err != nil {
 				slog.Warn("story links skipped: epics.md unreadable", "source", cur.Key, "error", err)
@@ -235,7 +236,7 @@ func (s Server) serve(w http.ResponseWriter, r *http.Request) {
 				linkStories(tree, src, storyIDs(epics), storyBase(cur.Key, v.CurSig, p, s.sigDoc), p == epicsDoc)
 			}
 		}
-		if err := md.Renderer().Render(&buf, src, tree); err != nil {
+		if err := mdRenderer.Render(&buf, src, tree); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
