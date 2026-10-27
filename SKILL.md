@@ -31,6 +31,15 @@ Missing files: start from [templates/](templates/). Read the reference for a fil
    is updated (`grep -rn 'E1S9' .`).
 6. **Link references.** Every ADR mention in `docs/` (`ADR 0007`, each number of `ADRs 0005–0007`)
    is a relative link to the ADR file, outside code blocks.
+7. **Link repo files.** Every reference to a repo file outside `docs/` (sources, tests, testdata,
+   policies, scripts, workflows, agent configs, e.g. `internal/ingest/ingest.go:65`,
+   `tools/e2e/e2e.sh`) is a link to that file's page in the repo's web UI on its forge, for
+   `<branch>` and `<path>` (directories: the forge's directory view), with the forge's line anchor
+   when a line or range is cited, outside code blocks. `<branch>` is the branch the doc lives on:
+   `main` (the default branch) for everything that is or will be merged into it, so links do not
+   break when a feature branch is deleted. The visible text stays the path (with `:line` if cited).
+   Links between docs stay relative; `AGENTS.md` and `README.md` count as docs here and are linked
+   relatively.
 
 ## Checking a docs-only change
 
@@ -39,6 +48,7 @@ Before a docs-only PR is opened or merged, check and report each problem with `f
 - every statement is consistent with the other docs, the ADRs and the code on the branch;
 - story IDs use `E<epic>S<n>` and exist in `docs/epics.md`;
 - decision, ADR and tenet references resolve; relative links and anchors resolve;
+  repo files outside `docs/` are forge links as rule 7 says;
 - decided items are recorded and removed from `docs/decisions-open.md`; assumptions are listed there;
 - every row there has `Status` `open` or `answered — in progress` with the answer quoted, no row
   contradicts the rest of the docs, and no row remains for an already recorded decision;
