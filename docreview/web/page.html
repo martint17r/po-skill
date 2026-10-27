@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Doc}}{{.Doc}} · {{end}}docreview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="bar">
+  <form method="get" action="/">
+    <label class="sr" for="doc">Document</label>
+    <input type="hidden" name="ps" value="{{.DocSig}}">
+    <input type="hidden" name="ss" value="{{.CurSig}}">
+    <select id="doc" name="p" onchange="this.form.ps.value=this.selectedOptions[0].dataset.sig;this.form.submit()">
+      {{$d := .Doc}}{{range .Docs}}<option value="{{.Path}}" data-sig="{{.Sig}}"{{if eq .Path $d}} selected{{end}}>{{.Path}}</option>{{end}}
+    </select>
+    <label class="sr" for="src">Branch or worktree</label>
+    <select id="src" name="s" onchange="this.form.p.value='';this.form.ps.value='';this.form.ss.value=this.selectedOptions[0].dataset.sig;this.form.submit()">
+      {{$c := .Cur.Key}}{{range .Sources}}<option value="{{.Key}}" data-sig="{{.Sig}}"{{if eq .Key $c}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </form>
+</header>
+<main>
+{{if .Error}}<p>{{.Error}}</p>{{end}}
+<article data-s="{{.Cur.Key}}" data-ss="{{.CurSig}}" data-p="{{.Doc}}" data-ps="{{.DocSig}}">{{.Body}}</article>
+<p id="reload-note" hidden role="status"></p>
+</main>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral" });
+  window.mermaid = mermaid; // the reload script below works without this module (offline/CDN failure)
+  mermaid.run({ querySelector: "pre.mermaid" });
+</script>
+<script>
+  // Hot reload: poll a content fingerprint while the tab is visible; on change swap in the new article.
+  const art = document.querySelector("article");
+  const note = document.getElementById("reload-note");
+  const q = new URLSearchParams({ s: art.dataset.s, ss: art.dataset.ss, p: art.dataset.p, ps: art.dataset.ps });
+  let first = null, timer = null, busy = false, dead = false;
+  const say = (m) => { note.textContent = m; note.hidden = !m; };
+  async function tick() {
+    if (busy || dead || !art.dataset.p) return;
+    busy = true;
+    try {
+      const r = await fetch("/hash?" + q, { cache: "no-store" });
+      if (r.status === 400 || r.status === 404) {
+        dead = true; clearInterval(timer); timer = null;
+        return say("This document is gone; auto-reload stopped.");
+      }
+      if (!r.ok) throw new Error(r.status);
+      const h = await r.text();
+      if (first === null) first = h;
+      else if (h !== first) {
+        const pr = await fetch(location.href, { cache: "no-store" });
+        if (pr.status === 400 || pr.status === 404) { dead = true; clearInterval(timer); timer = null; return say("This document is gone; auto-reload stopped."); }
+        if (!pr.ok) throw new Error(pr.status);
+        const doc = new DOMParser().parseFromString(await pr.text(), "text/html");
+        const y = scrollY;
+        art.innerHTML = doc.querySelector("article").innerHTML;
+        scrollTo(0, y);
+        first = h; // record before diagrams: a Mermaid failure must not loop the refresh
+        try { await window.mermaid?.run({ nodes: art.querySelectorAll("pre.mermaid") }); } catch (e) { console.error(e); }
+      }
+      say("");
+    } catch (e) {
+      say("Auto-reload: could not refresh, retrying.");
+    } finally { busy = false; }
+  }
+  function sync() {
+    clearInterval(timer); timer = null;
+    if (!dead && document.visibilityState === "visible") { tick(); timer = setInterval(tick, 1000); }
+  }
+  document.addEventListener("visibilitychange", sync);
+  sync();
+</script>
+</body>
+</html>
