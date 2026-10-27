@@ -40,6 +40,9 @@ Missing files: start from [templates/](templates/). Read the reference for a fil
    break when a feature branch is deleted. The visible text stays the path (with `:line` if cited).
    Links between docs stay relative; `AGENTS.md` and `README.md` count as docs here and are linked
    relatively.
+8. **One PR per change.** Every change goes through its own pull request from a feature branch.
+   Never commit to, merge into or push `main` (the default branch) without the user's explicit ask
+   for that change; a passing QA or docs-only check is not that ask.
 
 ## Checking a docs-only change
 
