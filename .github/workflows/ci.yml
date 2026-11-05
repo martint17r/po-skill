@@ -1,5 +1,4 @@
-# Runs the docreview checks. The runner image (node:lts) has no Go, so setup-go
-# installs the version from docreview/go.mod; actions resolve against data.forgejo.org.
+# Runs the docreview checks with the Go version from docreview/go.mod.
 name: ci
 
 on:
